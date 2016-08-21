@@ -4,7 +4,7 @@ import IO
 import sys
 import numpy as np
 
-# sys.path.append(r'D:\Dropbox\CommonCode\analysis\src')
+sys.path.append(r'D:\Dropbox\CommonCode\analysis\src')
 # sys.path.append(r'D:\Dropbox\CommonCode\semiconductor\src')
 
 import PV_analysis.lifetime.determine.J0 as J0
@@ -71,8 +71,8 @@ class data_list():
             'Fit Range']
 
     @fitting_width.setter
-    def fitting_width(self):
-        self._fitting_width
+    def fitting_width(self, value):
+        self._fitting_width = value
 
     @property
     def gen(self):
@@ -92,12 +92,24 @@ class data_list():
         return name
 
     @property
-    def doping(self):
-        return self.ltc.sample.doping
+    def optical_constant(self):
+        return self.ltc.sample.absorptance
+
+    @optical_constant.setter
+    def optical_constant(self, value):
+        self.ltc.sample.absorptance = float(value)
+
+    @property
+    def D_ambi(self):
+        return self.ltc.D_ambi
 
     @property
     def thickness(self):
         return self.ltc.sample.thickness
+
+    @thickness.setter
+    def thickness(self, value):
+        self.ltc.sample.thickness = value
 
     @property
     def inf(self):
@@ -113,6 +125,23 @@ class data_list():
 
         return dic
 
+    @property
+    def ni(self):
+        try:
+            _ni = self.ltc.ni_eff[self.fitting_mask]
+        except:
+            _ni = self.ltc.ni_eff
+        return _ni
+
+    @property
+    def D_ambi(self):
+
+        try:
+            _D_ambi = self.D_ambi[self.fitting_mask]
+        except:
+            _D_ambi = self.D_ambi
+        return _D_ambi
+
     def J0(self, method):
         '''
         determines the J0, using the provided method for the current sample
@@ -124,18 +153,17 @@ class data_list():
                           thickness=self.thickness,
                           ni=self.ltc.ni_eff, method=method,
                           tau_aug=self.ltc.auger,
-                          Ndop=self.doping)
+                          Ndop=self.ltc.sample.doping,
+                          D_ambi=self.D_ambi)
         else:
-            try:
-                _ni = self.ltc.ni_eff[self.fitting_mask]
-            except:
-                _ni = self.ltc.ni_eff
+
             self._J0 = J0(nxc=self.nxc[self.fitting_mask],
                           tau=self.tau[self.fitting_mask],
                           thickness=self.thickness,
-                          ni=_ni, method=method,
+                          ni=self.ni, method=method,
                           tau_aug=self.ltc.auger[self.fitting_mask],
-                          Ndop=self.doping)
+                          Ndop=self.ltc.sample.doping,
+                          D_ambi=self.D_ambi)
 
         return self._J0
 
@@ -195,12 +223,17 @@ class data_handeller():
 
     def __init__(self, settings, analysis):
 
+        self.MDC_analysis_type = {
+            'At fixed MCD':  self.get_J0_fixed_nxc,
+            'At each MCD': self.get_J0_nxc_scan,
+        }
+
         self.settings = settings
         self.analysis = analysis
 
-        print('\ndata_handeller inputs:')
-        print('\t', self.settings)
-        print('\t', self.analysis)
+        # print('\ndata_handeller inputs:')
+        # print('\t', self.settings)
+        # print('\t', self.analysis)
 
         self._check_inputs()
 
@@ -214,6 +247,7 @@ class data_handeller():
         determines J0 for the current file
         '''
         wafer = {}
+
         for method in self.analysis['analysis_method']:
             sample_index += 1
             self.data.J0(method)
@@ -221,7 +255,7 @@ class data_handeller():
 
         return wafer, sample_index
 
-    def get_J0(self):
+    def get_J0_fixed_nxc(self):
         '''
         returns a nested dictionary of sample name, J0 method, and finially the
         determined value.  Yes it's dictionaries all the way down.
@@ -230,13 +264,14 @@ class data_handeller():
         i = 0
         while self.data.isFilesLeft():
             self.data.nextFile()
+            self._use_external_models()
+            self._use_external_nxc_calcs()
             self.data.mask()
             wafer, i = self._get_J0(i)
             samples.update(wafer)
             print('sample {0} done! {1:.2e} A/cm^-2'.format(
                 self.data.sample_name, wafer[i]['J0']))
 
-        print(samples)
         return samples
 
     def get_J0_nxc_scan(self):
@@ -248,11 +283,89 @@ class data_handeller():
         i = 0
         while self.data.isFilesLeft():
             self.data.nextFile()
+            self._use_external_models()
+            self._use_external_nxc_calcs()
+
             for nxc in self.data.nxc_in_fitting_range():
                 self.data.nxc_fit_center = nxc
                 self.data.mask()
 
                 wafer, i = self._get_J0(i)
                 samples.update(wafer)
-            print(wafer[i]['Sample name'] + 'Done')
+            # print(wafer[i]['Sample name'] + 'Done')
         return samples
+
+    def test(self):
+         print(self.settings)
+         print(self.analysis)
+
+    def go(self):
+        '''
+        A controller that sends us in the right direction for determining J0
+        '''
+        # if not using sinton values, update them in the class
+
+        if self.analysis['analysis_MCD'] in self.MDC_analysis_type.keys():
+
+            J0_dic = self.MDC_analysis_type[self.analysis['analysis_MCD']]()
+        else:
+            print('MCD analysis not a valid option')
+        # need to caculate shit here
+
+        # self.test()
+
+        # A check that the dic is not empty
+        if J0_dic:
+            print('send to save')
+            print(J0_dic.keys())
+            IO.save('test', J0_dic)
+
+        pass
+
+    def _use_external_nxc_calcs(self):
+        '''
+        If use_sinton_values == False,
+        Recaculates nxc from the photoconductance
+        '''
+        if not self.settings['use_sinton_values']:
+            self.data.ltc.cal_lifetime(
+                dark_conductance=self.data.ltc.other_inf['dark_voltage'])
+
+    def _use_external_models(self):
+        '''
+        If use_sinton_values == False,
+        Applied the values and models provided from the GUI
+        to caculate J0.
+        '''
+        if not self.settings['use_sinton_values']:
+
+            settings = dict(self.settings)
+            del settings['use_sinton_values']
+
+            # things that can be updated
+            for key in settings.keys():
+
+                if hasattr(self.data, key):
+                    print('data has key', key)
+                    setattr(self.data, key, settings[key])
+                elif hasattr(self.data.ltc, key):
+                    print('data.ltc has key', key)
+                    setattr(self.data.ltc, key, settings[key])
+                elif hasattr(self.data.ltc.sample, key):
+                    print('data.ltc has key', key)
+                    setattr(self.data.ltc.sample, key, settings[key])
+                else:
+                    print('\t', key, 'not and attribute',
+                          hasattr(self.data, key))
+
+        # self.data.thickness = self.settings['thickness']
+        # doping
+        # optical constant
+        # MCD
+        # Fit range
+        # doping_type
+        # Auger model
+        # radiative_model
+        # mobility_model
+        # IntrinsicCarrierDensity_model
+        # Bandgapnarrowing_model

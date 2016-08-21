@@ -1,13 +1,15 @@
 #! python3.5
-import sys
 import os
 from collections import OrderedDict
 from PyQt5 import QtCore, QtWidgets, QtGui
-import core
-import IO
-from glob import glob
 
-# progname = os.path.basename(sys.argv[0])
+import core
+
+from glob import glob
+from semiconductor.recombination.intrinsic import Auger, Radiative
+from semiconductor.electrical import Mobility
+from semiconductor.material import IntrinsicCarrierDensity, BandGapNarrowing
+
 # progversion = "0.1"
 
 
@@ -24,6 +26,70 @@ from glob import glob
 #         self.signal_shown.emit()
 
 
+
+
+class input_box(QtWidgets.QLineEdit):
+
+    def __init__(self):
+        super().__init__('Unchanged')
+
+
+class input_combo(QtWidgets.QComboBox):
+
+    def __init__(self, List):
+        super().__init__()
+        self.addItems(List)
+        self.addItems(['Unchanged'])
+        self.setCurrentText('Unchanged')
+
+class optional_input_widgets():
+
+    class_dic = {'QLineEdit': input_box,
+    'QComboBox':input_combo,
+    }
+
+    index = 0
+
+    var_name_dic = {}
+
+    def __init__(self):
+        # super().__init__()
+
+        # if parent is not None:
+        #     self.setParent(parent)
+
+        self.grid = QtWidgets.QGridLayout()
+    def add_item(self, label_name, vairable_name, Q_type, *args):
+        label = QtWidgets.QLabel(label_name + ':')
+
+
+
+        self.grid.addWidget(label, self.index, 0)
+
+        input_item = self.class_dic[Q_type](*args)
+        input_item.vairable_name = vairable_name
+        self.grid.addWidget(input_item, self.index, 1)
+
+        self.index +=1
+
+    def get_settings(self, dic, parent):
+        print (self.var_name_dic.keys())
+        for inputbox in parent.findChildren(QtWidgets.QLineEdit):
+            key  = inputbox.vairable_name
+            text = inputbox.text()
+            if text != 'Unchanged':
+                dic[key] = text
+
+
+        for combobox in parent.findChildren(QtWidgets.QComboBox):
+            key  = combobox.vairable_name
+            text = combobox.currentText()
+            if text != 'Unchanged':
+                dic[key] = text
+
+        return dic
+
+
 class _optional_settings(QtWidgets.QWidget):
     settings = {}
 
@@ -35,29 +101,33 @@ class _optional_settings(QtWidgets.QWidget):
         self.initUI()
 
     def initUI(self):
-        grid = QtWidgets.QGridLayout()
 
-        names = ['thickness', 'doping', 'optical constant']
-        positions = [(i, j) for i in range(1, 4) for j in range(1)]
-        for position, name in zip(positions, names):
+        self.widgets = optional_input_widgets()
 
-            label = QtWidgets.QLabel(name + ':')
-            grid.addWidget(label, *position)
+        self.widgets.add_item('thickness', 'thickness', 'QLineEdit')
+        self.widgets.add_item('doping', 'doping', 'QLineEdit')
+        self.widgets.add_item('optical constant', 'optical_constant', 'QLineEdit')
+        self.widgets.add_item('MCD', 'nxc_fit_center', 'QLineEdit')
+        self.widgets.add_item('Fit range', 'fitting_width', 'QLineEdit')
 
-            text = QtWidgets.QLineEdit('default')
-            self.settings[name] = text
-            grid.addWidget(text, position[0], position[1] + 1)
 
-        label = QtWidgets.QLabel('doping type:')
-        grid.addWidget(label, position[0] + 1, 0)
-        combo = QtWidgets.QComboBox(self)
-        combo.addItem("p-type")
-        combo.addItem("n-type")
-        self.settings['doping type'] = combo
+        Qcombo_names = [
+            'doping type',
+            'Auger model',
+            'Radiative model',
+            'Mobility model',
+            'Intrinsic carrier concentration model',
+            'Band gap narrowing model'
+        ]
 
-        grid.addWidget(combo, position[0] + 1, 1)
+        self.widgets.add_item('Doping type', 'doping_type', 'QComboBox', ['p-type', 'n-type'])
+        self.widgets.add_item('Auger model', 'auger', 'QComboBox', Auger().available_models())
+        self.widgets.add_item('Radiative model', 'radiative', 'QComboBox', Radiative().available_models())
+        self.widgets.add_item('Mobility model', 'mobility', 'QComboBox', Mobility().available_models())
+        self.widgets.add_item('Intrinsic carrier concentration model', 'ni', 'QComboBox', IntrinsicCarrierDensity().available_models())
+        self.widgets.add_item('Band gap narrowing model', 'ni_eff', 'QComboBox', BandGapNarrowing().available_models())
 
-        self.setLayout(grid)
+        self.setLayout(self.widgets.grid)
 
     def hide(self):
         sender = self.sender()
@@ -75,19 +145,15 @@ class _optional_settings(QtWidgets.QWidget):
         for setting in self.settings.keys():
             self.settings[setting].setDisabled(state)
 
-    def get_settings(self):
-        dic = {}
-        for key in self.settings.keys():
-            try:
-                dic[key] = self.settings[key].text()
-            except:
-                dic[key] = self.settings[key].currentText()
+    def get_settings(self, dic):
 
-        return dic
+        return  self.widgets.get_settings(dic, self.parent())
+
 
 
 class Settings(QtWidgets.QWidget):
-    settings = {}
+
+    use_sinton_values = True  # A flag that lets you use sinton or own calcs
 
     def __init__(self, parent=None):
         super().__init__()
@@ -101,19 +167,46 @@ class Settings(QtWidgets.QWidget):
 
         # A check box to use the stuffs
         check_box = QtWidgets.QCheckBox(
-            "Use defult spreadsheet values")
+            "Use values from spreadsheet")
         check_box.setChecked(True)
-        check_box.stateChanged.connect(self.enable)
+        check_box.stateChanged.connect(self.default_values)
 
         self.others = _optional_settings()
         grid.addWidget(check_box)
         grid.addWidget(self.others)
+
+        self.others.setHidden(True)
         self.setLayout(grid)
 
-        print(self.children())
+    def default_values(self):
+        '''
+        Checks if we should use the default values
+        If, we should not, hides the appropriate part of the gui.
+        '''
+        sender = self.sender()
+        if sender.isChecked():
+            self.others.setHidden(True)
+            self.use_sinton_values = True
+        else:
+            self.others.setVisible(True)
 
-    def enable(self):
-        self.others.isHiden(True)
+            self.use_sinton_values = False
+
+        self.adjustSize()
+        self.parentWidget().adjustSize()
+
+        # self.setLayout(self.layout)
+
+    def get_settings(self):
+
+        dic = {}
+        dic['use_sinton_values'] = self.use_sinton_values
+
+        if not self.use_sinton_values:
+
+            dic = self.others.get_settings(dic)
+
+        return dic
 
 
 class Analysis(QtWidgets.QWidget):
@@ -137,8 +230,8 @@ class Analysis(QtWidgets.QWidget):
         self.analysis_dic[
             "Kimmerle's Intrinsic carrier correction"] = ['Kimmerle_BGN']
         self.analysis_dic["Kimmerle's SRH"] = ['Kimmerle_SRH']
-        # self.analysis_dic[
-        #     "Kimmerle's carrier profile correction"] = ['Kimmerle_Diffusion']
+        self.analysis_dic[
+            "Kimmerle's carrier profile correction"] = ['Kimmerle_Diffusion']
         self.analysis_dic['Run all'] = [
             ''.join(value) for value in self.analysis_dic.values()]
 
@@ -153,9 +246,15 @@ class Analysis(QtWidgets.QWidget):
 
         vbox = QtWidgets.QVBoxLayout()
 
-        combo = QtWidgets.QComboBox(self)
+        J0_det_label = QtWidgets.QLabel('J0 determination:')
+        self.anaylsis_combo = QtWidgets.QComboBox(self)
         for option in self.analysis_dic.keys():
-            combo.addItem(option)
+            self.anaylsis_combo.addItem(option)
+
+        optin_combo_label = QtWidgets.QLabel('Analysis type:')
+        self.MCD_optin_combo = QtWidgets.QComboBox(self)
+        for option in ['At fixed MCD', 'At each MCD']:
+            self.MCD_optin_combo.addItem(option)
 
         load_files_button = QtWidgets.QPushButton('Load files')
         load_folder_button = QtWidgets.QPushButton('Load folder')
@@ -164,25 +263,29 @@ class Analysis(QtWidgets.QWidget):
 
         load_files_button.clicked.connect(self.load_files)
         load_folder_button.clicked.connect(self.load_folder)
-        combo.currentIndexChanged.connect(self._set_analysis)
+        self.anaylsis_combo.currentIndexChanged.connect(self._set_analysis)
 
         vbox.addWidget(load_files_button)
         vbox.addWidget(load_folder_button)
         vbox.addWidget(label)
         vbox.addWidget(self.loaded_FileNames)
 
-        vbox.addWidget(combo)
+        vbox.addWidget(J0_det_label)
+        vbox.addWidget(self.anaylsis_combo)
+        vbox.addWidget(optin_combo_label)
+        vbox.addWidget(self.MCD_optin_combo)
 
         QtWidgets.QFileDialog()
 
         self.setLayout(vbox)
 
-        self.analysis = combo.currentText()
+        # self.analysis = self.anaylsis_combo.currentText()
 
     def _set_analysis(self, int):
 
-        sender = self.sender()
-        self.analysis_method = self.analysis_dic[sender.currentText()]
+        self.analysis_method = self.analysis_dic[
+            self.anaylsis_combo.currentText()]
+        pass
 
     def load_files(self, e):
         '''
@@ -220,8 +323,10 @@ class Analysis(QtWidgets.QWidget):
 
     def get_settings(self):
         dic = {}
-        dic['analysis_method'] = self.analysis_method
+        dic['analysis_method'] = self.analysis_dic[
+            self.anaylsis_combo.currentText()]
         dic['files'] = self.files
+        dic['analysis_MCD'] = self.MCD_optin_combo.currentText()
 
         return dic
 
@@ -256,7 +361,6 @@ class MainWindow(QtWidgets.QWidget):
         setting_dic = self.settings.get_settings()
         analysis_dic = self.analysis.get_settings()
 
-        data = core.data_handeller(setting_dic, analysis_dic).get_J0_nxc_scan()
-        IO.save('test', data)
+        data = core.data_handeller(setting_dic, analysis_dic).go()
 
         pass
