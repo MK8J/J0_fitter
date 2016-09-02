@@ -26,8 +26,6 @@ from semiconductor.material import IntrinsicCarrierDensity, BandGapNarrowing
 #         self.signal_shown.emit()
 
 
-
-
 class input_box(QtWidgets.QLineEdit):
 
     def __init__(self):
@@ -39,14 +37,15 @@ class input_combo(QtWidgets.QComboBox):
     def __init__(self, List):
         super().__init__()
         self.addItems(List)
-        self.addItems(['Unchanged'])
-        self.setCurrentText('Unchanged')
+        # self.addItems(['Unchanged'])
+        # self.setCurrentText('Unchanged')
+
 
 class optional_input_widgets():
 
     class_dic = {'QLineEdit': input_box,
-    'QComboBox':input_combo,
-    }
+                 'QComboBox': input_combo,
+                 }
 
     index = 0
 
@@ -59,10 +58,9 @@ class optional_input_widgets():
         #     self.setParent(parent)
 
         self.grid = QtWidgets.QGridLayout()
+
     def add_item(self, label_name, vairable_name, Q_type, *args):
         label = QtWidgets.QLabel(label_name + ':')
-
-
 
         self.grid.addWidget(label, self.index, 0)
 
@@ -70,22 +68,22 @@ class optional_input_widgets():
         input_item.vairable_name = vairable_name
         self.grid.addWidget(input_item, self.index, 1)
 
-        self.index +=1
+        self.index += 1
 
     def get_settings(self, dic, parent):
-        print (self.var_name_dic.keys())
+        # print(self.var_name_dic.keys())
         for inputbox in parent.findChildren(QtWidgets.QLineEdit):
-            key  = inputbox.vairable_name
+            key = inputbox.vairable_name
             text = inputbox.text()
             if text != 'Unchanged':
-                dic[key] = text
-
+                dic[key] = float(text)
 
         for combobox in parent.findChildren(QtWidgets.QComboBox):
-            key  = combobox.vairable_name
+            key = combobox.vairable_name
             text = combobox.currentText()
             if text != 'Unchanged':
                 dic[key] = text
+                print(key, text)
 
         return dic
 
@@ -104,28 +102,28 @@ class _optional_settings(QtWidgets.QWidget):
 
         self.widgets = optional_input_widgets()
 
-        self.widgets.add_item('thickness', 'thickness', 'QLineEdit')
-        self.widgets.add_item('doping', 'doping', 'QLineEdit')
-        self.widgets.add_item('optical constant', 'optical_constant', 'QLineEdit')
-        self.widgets.add_item('MCD', 'nxc_fit_center', 'QLineEdit')
-        self.widgets.add_item('Fit range', 'fitting_width', 'QLineEdit')
+        self.widgets.add_item('Thickness (um)', 'thickness', 'QLineEdit')
+        self.widgets.add_item(r'Doping (cm<sup>-3</sup>)',
+                              'doping', 'QLineEdit')
+        self.widgets.add_item('Optical constant (38 mA cm<sup>-2</sup>)',
+                              'optical_constant', 'QLineEdit')
+        self.widgets.add_item('MCD (cm<sup>-3</sup>)',
+                              'nxc_fit_center', 'QLineEdit')
+        self.widgets.add_item('Fit range (0-1)', 'fitting_width', 'QLineEdit')
 
-
-        Qcombo_names = [
-            'doping type',
-            'Auger model',
-            'Radiative model',
-            'Mobility model',
-            'Intrinsic carrier concentration model',
-            'Band gap narrowing model'
-        ]
-
-        self.widgets.add_item('Doping type', 'doping_type', 'QComboBox', ['p-type', 'n-type'])
-        self.widgets.add_item('Auger model', 'auger', 'QComboBox', Auger().available_models())
-        self.widgets.add_item('Radiative model', 'radiative', 'QComboBox', Radiative().available_models())
-        self.widgets.add_item('Mobility model', 'mobility', 'QComboBox', Mobility().available_models())
-        self.widgets.add_item('Intrinsic carrier concentration model', 'ni', 'QComboBox', IntrinsicCarrierDensity().available_models())
-        self.widgets.add_item('Band gap narrowing model', 'ni_eff', 'QComboBox', BandGapNarrowing().available_models())
+        # now add the combo boxes
+        self.widgets.add_item('Doping type', 'dopant_type',
+                              'QComboBox', ['Unchanged', 'p-type', 'n-type'])
+        self.widgets.add_item('Intrinsic carrier concentration model',
+                              'ni', 'QComboBox', IntrinsicCarrierDensity().available_models())
+        self.widgets.add_item('Auger model', 'auger',
+                              'QComboBox', Auger().available_models())
+        self.widgets.add_item('Radiative model', 'radiative',
+                              'QComboBox', Radiative().available_models())
+        self.widgets.add_item('Mobility model', 'mobility_sum',
+                              'QComboBox', Mobility().available_models())
+        self.widgets.add_item('Band gap narrowing model', 'ni_eff',
+                              'QComboBox', BandGapNarrowing().available_models())
 
         self.setLayout(self.widgets.grid)
 
@@ -147,8 +145,7 @@ class _optional_settings(QtWidgets.QWidget):
 
     def get_settings(self, dic):
 
-        return  self.widgets.get_settings(dic, self.parent())
-
+        return self.widgets.get_settings(dic, self.parent())
 
 
 class Settings(QtWidgets.QWidget):
@@ -258,7 +255,7 @@ class Analysis(QtWidgets.QWidget):
 
         load_files_button = QtWidgets.QPushButton('Load files')
         load_folder_button = QtWidgets.QPushButton('Load folder')
-        label = QtWidgets.QLabel('Files loaded:')
+        self.loaded_files_label = QtWidgets.QLabel('No files loaded:')
         self.loaded_FileNames = QtWidgets.QLineEdit('No files selected')
 
         load_files_button.clicked.connect(self.load_files)
@@ -267,7 +264,7 @@ class Analysis(QtWidgets.QWidget):
 
         vbox.addWidget(load_files_button)
         vbox.addWidget(load_folder_button)
-        vbox.addWidget(label)
+        vbox.addWidget(self.loaded_files_label)
         vbox.addWidget(self.loaded_FileNames)
 
         vbox.addWidget(J0_det_label)
@@ -317,7 +314,10 @@ class Analysis(QtWidgets.QWidget):
                 os.path.split(fname)[-1] for fname in self.files)
             self.loaded_FileNames.setText(string)
         else:
-            self.loaded_FileNames.setText('No files selected')
+            self.loaded_FileNames.setText('Selected a file\s or a folder')
+
+        self.loaded_files_label.setText(
+            '{0} files selected:'.format(len(self.files)))
 
         pass
 

@@ -48,8 +48,8 @@ class data_list():
         self.ltc.nxc = self.nxc[maxindex:]
         self.ltc.tau = self.tau[maxindex:]
         self.ltc.gen = self.gen[maxindex:]
-        if isinstance(self.ltc.auger, np.ndarray):
-            self.ltc.auger = self.ltc.auger[maxindex:]
+        if isinstance(self.ltc.intrinsic_tau, np.ndarray):
+            self.ltc.intrinsic_tau = self.ltc.intrinsic_tau[maxindex:]
         if isinstance(self.ltc.ni, np.ndarray):
             self.ltc.ni = self.ltc.ni[maxindex:]
 
@@ -100,10 +100,6 @@ class data_list():
         self.ltc.sample.absorptance = float(value)
 
     @property
-    def D_ambi(self):
-        return self.ltc.D_ambi
-
-    @property
     def thickness(self):
         return self.ltc.sample.thickness
 
@@ -126,20 +122,21 @@ class data_list():
         return dic
 
     @property
-    def ni(self):
-        try:
-            _ni = self.ltc.ni_eff[self.fitting_mask]
-        except:
-            _ni = self.ltc.ni_eff
-        return _ni
+    def mobility_sum(self):
+        return self.ltc.mobility_sum
+
+    @mobility_sum.setter
+    def mobility_sum(self, value):
+        self.ltc.mobility_sum = ''
+        self.ltc.mobility_model = value
 
     @property
     def D_ambi(self):
 
         try:
-            _D_ambi = self.D_ambi[self.fitting_mask]
+            _D_ambi = self.ltc.D_ambi[self.fitting_mask]
         except:
-            _D_ambi = self.D_ambi
+            _D_ambi = self.ltc.D_ambi
         return _D_ambi
 
     def J0(self, method):
@@ -149,26 +146,27 @@ class data_list():
         self.method = method
         # if an index is provided, use it
         if np.all(self.fitting_mask) is None:
-            self._J0 = J0(nxc=self.nxc, tau=self.tau,
-                          thickness=self.thickness,
-                          ni=self.ltc.ni_eff, method=method,
-                          tau_aug=self.ltc.auger,
-                          Ndop=self.ltc.sample.doping,
-                          D_ambi=self.D_ambi)
-        else:
+            self.fitting_mask = np.ones(self.nxc.shape[0])
 
-            self._J0 = J0(nxc=self.nxc[self.fitting_mask],
-                          tau=self.tau[self.fitting_mask],
-                          thickness=self.thickness,
-                          ni=self.ni, method=method,
-                          tau_aug=self.ltc.auger[self.fitting_mask],
-                          Ndop=self.ltc.sample.doping,
-                          D_ambi=self.D_ambi)
+        _ni = self.ltc.ni_eff
+
+        # if ni is an array, mask it
+        if isinstance(_ni, np.ndarray) and _ni.shape[0] == self.nxc.shape[0]:
+            _ni = _ni[self.fitting_mask]
+
+        self._J0 = J0(nxc=self.nxc[self.fitting_mask],
+                      tau=self.tau[self.fitting_mask],
+                      thickness=self.thickness,
+                      ni=_ni, method=method,
+                      tau_aug=self.ltc.intrinsic_tau[self.fitting_mask],
+                      Ndop=self.ltc.sample.doping,
+                      D_ambi=self.D_ambi)
 
         return self._J0
 
-    def _caculate_lifetime(self):
-        self.ltc.cal_lifetime()
+    def _calculate_lifetime(self, dark_voltage):
+        self.ltc.cal_lifetime(analysis='generalised',
+                              dark_voltage=dark_voltage)
 
     def _check_nxc_fit_center(self):
 
@@ -185,7 +183,7 @@ class data_list():
 
         elif self.nxc_fit_center * (1. - self.fitting_width) < np.amin(self.nxc[is_finite]):
             print(
-                'center value was increase'.format(self.nxc_fit_center) +
+                'center value {0:.2e} was increased'.format(self.nxc_fit_center) +
                 ', as it was smaller than the lowest'
                 + ' measured excess carrier density')
             self.nxc_fit_center = np.amin(
@@ -296,8 +294,8 @@ class data_handeller():
         return samples
 
     def test(self):
-         print(self.settings)
-         print(self.analysis)
+        print(self.settings)
+        print(self.analysis)
 
     def go(self):
         '''
@@ -310,14 +308,9 @@ class data_handeller():
             J0_dic = self.MDC_analysis_type[self.analysis['analysis_MCD']]()
         else:
             print('MCD analysis not a valid option')
-        # need to caculate shit here
-
-        # self.test()
 
         # A check that the dic is not empty
         if J0_dic:
-            print('send to save')
-            print(J0_dic.keys())
             IO.save('test', J0_dic)
 
         pass
@@ -328,8 +321,9 @@ class data_handeller():
         Recaculates nxc from the photoconductance
         '''
         if not self.settings['use_sinton_values']:
-            self.data.ltc.cal_lifetime(
-                dark_conductance=self.data.ltc.other_inf['dark_voltage'])
+
+            self.data._calculate_lifetime(
+                self.data.ltc.dark_voltage)
 
     def _use_external_models(self):
         '''
@@ -342,30 +336,24 @@ class data_handeller():
             settings = dict(self.settings)
             del settings['use_sinton_values']
 
+            if 'ni' in settings.keys():
+                self._set_models({'ni': settings.pop('ni')})
+
+            self._set_models(settings)
+
+    def _set_models(self, settings):
             # things that can be updated
-            for key in settings.keys():
+        for key in settings.keys():
 
-                if hasattr(self.data, key):
-                    print('data has key', key)
-                    setattr(self.data, key, settings[key])
-                elif hasattr(self.data.ltc, key):
-                    print('data.ltc has key', key)
-                    setattr(self.data.ltc, key, settings[key])
-                elif hasattr(self.data.ltc.sample, key):
-                    print('data.ltc has key', key)
-                    setattr(self.data.ltc.sample, key, settings[key])
-                else:
-                    print('\t', key, 'not and attribute',
-                          hasattr(self.data, key))
-
-        # self.data.thickness = self.settings['thickness']
-        # doping
-        # optical constant
-        # MCD
-        # Fit range
-        # doping_type
-        # Auger model
-        # radiative_model
-        # mobility_model
-        # IntrinsicCarrierDensity_model
-        # Bandgapnarrowing_model
+            if hasattr(self.data, key):
+                print('data has key', key, settings[key])
+                setattr(self.data, key, settings[key])
+            elif hasattr(self.data.ltc, key):
+                print('data.ltc has key', key)
+                setattr(self.data.ltc, key, settings[key])
+            elif hasattr(self.data.ltc.sample, key):
+                print('data.ltc has key', key)
+                setattr(self.data.ltc.sample, key, settings[key])
+            else:
+                print('\t', key, 'not and attribute',
+                      hasattr(self.data, key))

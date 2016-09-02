@@ -20,7 +20,6 @@ def save(fname, samples):
     Saves a csv file with the name fname,
     and the data in data
     '''
-    print(samples)
     with open(fname + '.csv', 'w', newline='') as f:  # Just use 'w' mode in 3.x
         w = csv.DictWriter(
             f,
@@ -28,5 +27,4 @@ def save(fname, samples):
         w.writeheader()
 
         for sample in samples.keys():
-            print(sample)
             w.writerow(samples[sample])
