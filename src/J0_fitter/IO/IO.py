@@ -20,11 +20,18 @@ def save(fname, samples):
     Saves a csv file with the name fname,
     and the data in data
     '''
-    with open(fname + '.csv', 'w', newline='') as f:  # Just use 'w' mode in 3.x
-        w = csv.DictWriter(
-            f,
-            fieldnames=list(samples.values())[0].keys())
-        w.writeheader()
+    # test to see if can open the file
+    try:
 
-        for sample in samples.keys():
-            w.writerow(samples[sample])
+        with open(fname + '.csv', 'w', newline='') as f:  # Just use 'w' mode in 3.x
+            w = csv.DictWriter(
+                f,
+                fieldnames=list(samples.values())[0].keys())
+            w.writeheader()
+
+            for sample in samples.keys():
+                w.writerow(samples[sample])
+
+    except IOError:
+        print("Could not open output file {0}! Please check if it open and close!".format(
+            fname + '.csv'))

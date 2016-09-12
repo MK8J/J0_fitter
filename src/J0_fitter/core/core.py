@@ -45,17 +45,23 @@ class data_list():
 
         maxindex = self.nxc.argmax()
 
-        self.ltc.nxc = self.nxc[maxindex:]
+        if isinstance(self.ltc.sample.ni_eff, np.ndarray):
+            if self.ltc.sample.ni_eff.shape == self.nxc.shape:
+                self.ltc.sample.ni_eff = self.ltc.sample.ni_eff[maxindex:]
+
+        self.nxc = self.nxc[maxindex:]
         self.ltc.tau = self.tau[maxindex:]
         self.ltc.gen = self.gen[maxindex:]
         if isinstance(self.ltc.intrinsic_tau, np.ndarray):
             self.ltc.intrinsic_tau = self.ltc.intrinsic_tau[maxindex:]
-        if isinstance(self.ltc.ni, np.ndarray):
-            self.ltc.ni = self.ltc.ni[maxindex:]
 
     @property
     def nxc(self):
-        return self.ltc.nxc
+        return self.ltc.sample.nxc
+
+    @nxc.setter
+    def nxc(self, value):
+        self.ltc.sample.nxc = value
 
     @property
     def nxc_fit_center(self):
@@ -148,16 +154,23 @@ class data_list():
         if np.all(self.fitting_mask) is None:
             self.fitting_mask = np.ones(self.nxc.shape[0])
 
-        _ni = self.ltc.ni_eff
+        _ni = self.ltc.sample.ni
+        _ni_eff = self.ltc.sample.ni_eff
 
         # if ni is an array, mask it
-        if isinstance(_ni, np.ndarray) and _ni.shape[0] == self.nxc.shape[0]:
-            _ni = _ni[self.fitting_mask]
+        if isinstance(_ni_eff, np.ndarray
+                      ) and _ni_eff.shape[0] == self.nxc.shape[0]:
+            _ni_eff = _ni_eff[self.fitting_mask]
+
+        # print(_ni.shape, _ni_eff.shape, self.tau[self.fitting_mask].shape,
+        #       self.ltc.intrinsic_tau[self.fitting_mask].shape, self.tau.shape,
+        #       self.fitting_mask.shape)
 
         self._J0 = J0(nxc=self.nxc[self.fitting_mask],
                       tau=self.tau[self.fitting_mask],
                       thickness=self.thickness,
                       ni=_ni, method=method,
+                      ni_eff=_ni_eff,
                       tau_aug=self.ltc.intrinsic_tau[self.fitting_mask],
                       Ndop=self.ltc.sample.doping,
                       D_ambi=self.D_ambi)
@@ -311,7 +324,7 @@ class data_handeller():
 
         # A check that the dic is not empty
         if J0_dic:
-            IO.save('test', J0_dic)
+            IO.save('Summary', J0_dic)
 
         pass
 
@@ -348,12 +361,15 @@ class data_handeller():
             if hasattr(self.data, key):
                 print('data has key', key, settings[key])
                 setattr(self.data, key, settings[key])
+
             elif hasattr(self.data.ltc, key):
                 print('data.ltc has key', key)
                 setattr(self.data.ltc, key, settings[key])
+
             elif hasattr(self.data.ltc.sample, key):
-                print('data.ltc has key', key)
+                print('data.ltc.sample has key', key)
                 setattr(self.data.ltc.sample, key, settings[key])
+
             else:
                 print('\t', key, 'not and attribute',
                       hasattr(self.data, key))
