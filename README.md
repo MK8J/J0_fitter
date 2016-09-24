@@ -1,7 +1,7 @@
 # J0_fitter
 
-This is a program written in python to determine the recombination current, aka J~0e~ at a surface of a solar cell from
-quasi steady state photoconductance measurements. The program currently only accepts inputs from a Sinton Instruements excel file, and calculates J~0e~ with a variety of published methods.
+This is a program written in python to determine the recombination current, aka J<sub>0e</sub> at a surface of a solar cell from
+quasi steady state photoconductance measurements. The program currently only accepts inputs from a Sinton Instruements excel file, and calculates J<sub>0e</sub> with a variety of published methods.
 
 ## Installation
 
@@ -24,9 +24,9 @@ Then install the packages:
     ```
 
   2. Install the following python packages:
-      * numpy ^1^
-      * scipy ^1^
-      * matplotlib ^1^
+      * numpy <sup>1</sup>
+      * scipy <sup>1</sup>
+      * matplotlib <sup>1</sup>
       * pyqt5
 
      These can be install with either:
@@ -35,7 +35,7 @@ Then install the packages:
       pip install package_name
       ```
 
-     ^1^ For windows distributions please download the package from [here](http://www.lfd.uci.edu/~gohlke/pythonlibs/), and then run:
+     <sup>1</sup> For windows distributions please download the package from [here](http://www.lfd.uci.edu/~gohlke/pythonlibs/), and then run:
 
     ```
     pip install downloaded_package_name
