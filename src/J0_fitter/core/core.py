@@ -165,6 +165,9 @@ class data_list():
         # print(_ni.shape, _ni_eff.shape, self.tau[self.fitting_mask].shape,
         #       self.ltc.intrinsic_tau[self.fitting_mask].shape, self.tau.shape,
         #       self.fitting_mask.shape)
+        # print(self.nxc.shape, self.ltc.time[1:].shape)
+        # for i, j in (np.vstack((self.nxc, self.ltc.time)).T):
+        #     print(i, '\t', j)
 
         self._J0 = J0(nxc=self.nxc[self.fitting_mask],
                       tau=self.tau[self.fitting_mask],
