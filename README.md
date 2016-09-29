@@ -7,44 +7,46 @@ quasi steady state photoconductance measurements. The program currently only acc
 
 Check you have all the prerequsites installed and then just download the [zipped file](https://github.com/MK8J/J0_fitter/archive/master.zip) and run main.py file located in ./src/J0_fitter/ with python 3.5.
 
-### prerequisites
+### Prerequisites
 
-You need to install [python 3.5](https://www.python.org/ftp/python/3.5.2/python-3.5.2.exe). Make sure you click the "add to path" option during installation for an easy time. Check its install entering
+You need to install [python 3.5](https://www.python.org/ftp/python/3.5.2/python-3.5.2.exe). Make sure you click the "add to path" option during installation for an easy time getting this running. To check python is installed enter
 ```
 python
 ```
-into the command prompt.
+into the command prompt (windows users) or terminal (other os).
 
-Then install the packages:
 
-1. pip: Download [GetPip.py](https://www.google.com.au/url?sa=t&rct=j&q=&esrc=s&source=web&cd=2&cad=rja&uact=8&ved=0ahUKEwir1dnM6abPAhVB1WMKHerlAWIQFgghMAE&url=https%3A%2F%2Fbootstrap.pypa.io%2Fget-pip.py&usg=AFQjCNE8Fo9j_sgo1hBzEoUT39H85hFDrg&sig2=8pRU0vXw69kLHK6ob-BjnA). cd into the downloaded directory and run:
+We now have to install other python packages. This is made quite easy by using pip. So to do this first
+
+1. pip: Download [GetPip.py](https://www.google.com.au/url?sa=t&rct=j&q=&esrc=s&source=web&cd=2&cad=rja&uact=8&ved=0ahUKEwir1dnM6abPAhVB1WMKHerlAWIQFgghMAE&url=https%3A%2F%2Fbootstrap.pypa.io%2Fget-pip.py&usg=AFQjCNE8Fo9j_sgo1hBzEoUT39H85hFDrg&sig2=8pRU0vXw69kLHK6ob-BjnA). Then run the file with python. This can be done by cding into the downloaded directory and running:
 
     ```
     python get-pip.py
     ```
 
   2. Install the following python packages:
-      * numpy <sup>1</sup>
+      * numpy <sup>1,2</sup>
       * scipy <sup>1</sup>
       * matplotlib <sup>1</sup>
       * pyqt5
+      * openpyxl
 
-     These can be install with either:
+     These can be simply installed by typeing in:
 
       ```
       pip install package_name
       ```
 
-     <sup>1</sup> For windows distributions please download the package from [here](http://www.lfd.uci.edu/~gohlke/pythonlibs/), and then run:
+     <sup>1</sup> Note For windows users: Please download the indicated packages  with  [here](http://www.lfd.uci.edu/~gohlke/pythonlibs/). Make sure to download the version for your python version (the standard python version is with 32 bit python 3.5, and so will be named with  "win32" and "cp35" and in its filename). Once downloaded, cd into the directory  and  run:
 
     ```
     pip install downloaded_package_name
     ```
-    Make sure to install the numpy+MKL package and not just numpy.
+    <sup>2</sup> Note For windows users: Please make sure to install the numpy+MKL package and not just numpy.
 
-3. Install 2 of my other packages (not available from pip):
+3. Install 2 of my other packages (not on pip):
 
-  1. Semiconductor: download the wheel form [here](https://github.com/MK8J/semiconductor/tree/master/dist) and run:
+  1. Semiconductor: download the latest wheel form [here](https://github.com/MK8J/semiconductor/tree/master/dist) and run:
     ```
     pip install package name
     ```
