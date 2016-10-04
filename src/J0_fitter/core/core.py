@@ -123,7 +123,8 @@ class data_list():
         dic['MCD analysised'] = self.nxc_fit_center
         dic['Fit range'] = self.fitting_width
         dic['Jo fitting method'] = self.method
-        dic['J0'] = self._J0
+        dic['J0'] = float(self._J0)
+        dic['residuals'] = float(self._res)
 
         return dic
 
@@ -169,16 +170,16 @@ class data_list():
         # for i, j in (np.vstack((self.nxc, self.ltc.time)).T):
         #     print(i, '\t', j)
 
-        self._J0 = J0(nxc=self.nxc[self.fitting_mask],
-                      tau=self.tau[self.fitting_mask],
-                      thickness=self.thickness,
-                      ni=_ni, method=method,
-                      ni_eff=_ni_eff,
-                      tau_aug=self.ltc.intrinsic_tau[self.fitting_mask],
-                      Ndop=self.ltc.sample.doping,
-                      D_ambi=self.D_ambi)
-
-        return self._J0
+        self._J0, self._res = J0(nxc=self.nxc[self.fitting_mask],
+                                 tau=self.tau[self.fitting_mask],
+                                 thickness=self.thickness,
+                                 ni=_ni, method=method,
+                                 ni_eff=_ni_eff,
+                                 tau_aug=self.ltc.intrinsic_tau[
+                                     self.fitting_mask],
+                                 Ndop=self.ltc.sample.doping,
+                                 D_ambi=self.D_ambi,
+                                 res=True)
 
     def _calculate_lifetime(self, dark_voltage):
         self.ltc.cal_lifetime(analysis='generalised',
@@ -313,7 +314,7 @@ class data_handeller():
         print(self.settings)
         print(self.analysis)
 
-    def go(self):
+    def go(self, save_name):
         '''
         A controller that sends us in the right direction for determining J0
         '''
@@ -327,7 +328,7 @@ class data_handeller():
 
         # A check that the dic is not empty
         if J0_dic:
-            IO.save('Summary', J0_dic)
+            IO.save(save_name, J0_dic)
 
         pass
 

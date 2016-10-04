@@ -337,6 +337,7 @@ class MainWindow(QtWidgets.QWidget):
         super().__init__()
 
         self.initUI()
+        self._dir = None
 
     def initUI(self):
 
@@ -356,11 +357,23 @@ class MainWindow(QtWidgets.QWidget):
 
         self.show()
 
+    @property
+    def directory(self):
+        return self._dir or os.path.dirname(self.analysis.files[0])
+
+    @directory.setter
+    def directory(self, value):
+        self._dir = value
+
     def go(self):
 
         setting_dic = self.settings.get_settings()
         analysis_dic = self.analysis.get_settings()
 
-        data = core.data_handeller(setting_dic, analysis_dic).go()
+        save_name, save_name_filter = QtWidgets.QFileDialog.getSaveFileName(
+            self, 'Save your data dude', directory=self.directory, filter='csv (*.csv)')
+
+        if save_name != '' and save_name_filter != '':
+            data = core.data_handeller(setting_dic, analysis_dic).go(save_name)
 
         pass

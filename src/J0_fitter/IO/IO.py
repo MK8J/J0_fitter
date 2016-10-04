@@ -22,8 +22,8 @@ def save(fname, samples):
     '''
     # test to see if can open the file
     try:
-
-        with open(fname + '.csv', 'w', newline='') as f:  # Just use 'w' mode in 3.x
+        print(fname)
+        with open(fname, 'w', newline='') as f:  # Just use 'w' mode in 3.x
             w = csv.DictWriter(
                 f,
                 fieldnames=list(samples.values())[0].keys())
@@ -34,4 +34,4 @@ def save(fname, samples):
 
     except IOError:
         print("Could not open output file {0}! Please check if it open and close!".format(
-            fname + '.csv'))
+            fname))
