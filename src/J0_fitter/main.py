@@ -22,15 +22,14 @@ import sys
 
 def main():
 
-    qApp = QtWidgets.QApplication(sys.argv)
-    aw = MainWindow()
-    sys.exit(qApp.exec_())
+    try:
+        qApp = QtWidgets.QApplication(sys.argv)
+        aw = MainWindow()
+        sys.exit(qApp.exec_())
+    except Exception as err:
 
+        Error_handel().write(err, region='gui')
+        sys.exit()
 
 if __name__ == "__main__":
     main()
-
-
-# TODO
-# ensure that the values are passed to the background cacls.
-# currently doesn't look like anything but the models are passed

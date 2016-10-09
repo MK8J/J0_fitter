@@ -5,13 +5,13 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 
 import core
 import sys
-import traceback
 
 from glob import glob
 from semiconductor.recombination.intrinsic import Auger, Radiative
 from semiconductor.electrical import Mobility
 from semiconductor.material import IntrinsicCarrierDensity, BandGapNarrowing
 
+from core.error import Error_handel
 # progversion = "0.1"
 
 
@@ -227,7 +227,7 @@ class Analysis(QtWidgets.QWidget):
         self.analysis_dic['Kane & Swanson'] = ['kane&swanson']
         self.analysis_dic["King's Auger correction"] = ['king']
         self.analysis_dic[
-            "Kimmerle's Intrinsic carrier correction"] = ['Kimmerle_BGN']
+            "Blum's Intrinsic carrier correction"] = ['Blum_BGN']
         self.analysis_dic["Kimmerle's SRH"] = ['Kimmerle_SRH']
         self.analysis_dic[
             "Kimmerle's carrier profile correction"] = ['Kimmerle_Diffusion']
@@ -373,23 +373,18 @@ class MainWindow(QtWidgets.QWidget):
         self._dir = value
 
     def go(self):
-        try:
-            a.get()
-            setting_dic = self.settings.get_settings()
-            analysis_dic = self.analysis.get_settings()
-
+        setting_dic = self.settings.get_settings()
+        analysis_dic = self.analysis.get_settings()
+        if len(self.analysis.files) != 0:
             save_name, save_name_filter = QtWidgets.QFileDialog.getSaveFileName(
                 self, 'Save your data dude', directory=self.directory, filter='csv (*.csv)')
 
-            if save_name != '' and save_name_filter != '':
-                data = core.data_handeller(
-                    setting_dic, analysis_dic).go(save_name)
+            try:
 
-        except Exception as e:
-            # print(str(e), traceback.print_exc())
-            # print(type(err))
-            with open('log.txt', mode='a') as f:
-                traceback.print_exc(file=f)
-                f.write(+ str(e))
-            sys.exit(0)
-        pass
+                if save_name != '' and save_name_filter != '':
+                    data = core.data_handeller(
+                        setting_dic, analysis_dic).go(save_name)
+            except Exception as err:
+
+                Error_handel().write(err, 'calculations')
+                sys.exit()

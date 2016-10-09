@@ -22,7 +22,6 @@ def save(fname, samples):
     '''
     # test to see if can open the file
     try:
-        print(fname)
         with open(fname, 'w', newline='') as f:  # Just use 'w' mode in 3.x
             w = csv.DictWriter(
                 f,
