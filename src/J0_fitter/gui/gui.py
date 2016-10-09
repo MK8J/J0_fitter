@@ -4,6 +4,8 @@ from collections import OrderedDict
 from PyQt5 import QtCore, QtWidgets, QtGui
 
 import core
+import sys
+import traceback
 
 from glob import glob
 from semiconductor.recombination.intrinsic import Auger, Radiative
@@ -337,7 +339,7 @@ class MainWindow(QtWidgets.QWidget):
         super().__init__()
 
         self.initUI()
-        self._dir = None
+        self._dir = os.getcwd()
 
     def initUI(self):
 
@@ -359,21 +361,35 @@ class MainWindow(QtWidgets.QWidget):
 
     @property
     def directory(self):
-        return self._dir or os.path.dirname(self.analysis.files[0])
+        if len(self.analysis.files) == 0:
+            _dir = self._dir
+        else:
+            _dir = os.path.dirname(self.analysis.files[0])
+
+        return _dir
 
     @directory.setter
     def directory(self, value):
         self._dir = value
 
     def go(self):
+        try:
+            a.get()
+            setting_dic = self.settings.get_settings()
+            analysis_dic = self.analysis.get_settings()
 
-        setting_dic = self.settings.get_settings()
-        analysis_dic = self.analysis.get_settings()
+            save_name, save_name_filter = QtWidgets.QFileDialog.getSaveFileName(
+                self, 'Save your data dude', directory=self.directory, filter='csv (*.csv)')
 
-        save_name, save_name_filter = QtWidgets.QFileDialog.getSaveFileName(
-            self, 'Save your data dude', directory=self.directory, filter='csv (*.csv)')
+            if save_name != '' and save_name_filter != '':
+                data = core.data_handeller(
+                    setting_dic, analysis_dic).go(save_name)
 
-        if save_name != '' and save_name_filter != '':
-            data = core.data_handeller(setting_dic, analysis_dic).go(save_name)
-
+        except Exception as e:
+            # print(str(e), traceback.print_exc())
+            # print(type(err))
+            with open('log.txt', mode='a') as f:
+                traceback.print_exc(file=f)
+                f.write(+ str(e))
+            sys.exit(0)
         pass
