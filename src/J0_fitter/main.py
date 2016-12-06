@@ -16,6 +16,7 @@ Things to improve:
 """
 
 from gui.gui import MainWindow
+from core.error import Error_handel
 from PyQt5 import QtCore, QtWidgets, QtGui
 import sys
 
