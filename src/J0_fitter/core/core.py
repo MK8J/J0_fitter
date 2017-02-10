@@ -124,7 +124,10 @@ class data_list():
         dic['Fit range'] = self.fitting_width
         dic['Jo fitting method'] = self.method
         dic['J0'] = float(self._J0)
-        dic['residuals'] = float(self._res)
+        if self._res.size == 0:
+            dic['residuals'] = 0.
+        else:
+            dic['residuals'] = float(self._res)
 
         return dic
 
