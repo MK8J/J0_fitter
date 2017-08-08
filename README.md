@@ -61,12 +61,12 @@ We now have to install other python packages. This is made quite easy by using p
 ### J0e/Current recombination prefactor determination
 Here are a hosts of methods that are implemented in the program:
 
-1. [Kane and Swanson](http://cat.inist.fr/?aModele=afficheN&cpsidt=8187799)
-2. [King, Sinton, and Swanson](http://dx.doi.org/10.1109/16.46368)
-3. [Kimmerle *et al* 2014](http://dx.doi.org/10.1016/j.egypro.2014.08.087)
-4. [Thomson *et al* 2014](10.1016/j.egypro.2014.08.100)
-3. [Kimmerle *et al* 2015](http://dx.doi.org/10.1016/j.solmat.2015.06.043)
-
+1. The original! [Kane and Swanson method 1985](http://cat.inist.fr/?aModele=afficheN&cpsidt=8187799)
+2. Adding Auger correction: [King, Sinton, and Swanson 1990](http://dx.doi.org/10.1109/16.46368)
+3. An extension that accounts for injection dependent intrinsic carrier concentration: [Blum *et al* 2013](http://www.eupvsec-proceedings.com/proceedings?paper=23364) and [Kimmerle *et al* 2014](http://dx.doi.org/10.1016/j.egypro.2014.08.087)
+3. An extension that accounts for a constant Shockley Read Hall Lifetime: [Kimmerle *et al* 2015](http://dx.doi.org/10.1016/j.solmat.2015.06.043)
+4. An extension that accounts a non-uniform carrier density: [Kimmerle *et al* 2015](http://dx.doi.org/10.1016/j.solmat.2015.06.043)
+<!-- # This is current not available ( 4. [Thomson *et al* 2014](10.1016/j.egypro.2014.08.100)-->
 
 For the above methods which are modifications of the Kane and Swanson method the option exist to perform the measurement at:
 
